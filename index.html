@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>訪問看護ステーション経営シミュレーターMVP</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">Training Dashboard</p>
+      <h1>訪問看護ステーション経営シミュレーター</h1>
+      <p>売上・現金・人・品質のバランスを見ながら、管理者として毎月の意思決定を体験します。</p>
+    </div>
+    <div class="header-actions">
+      <button id="openGuideButton" class="secondary-button" type="button">判断の解説</button>
+      <button id="exportCsvButton" class="secondary-button" type="button" disabled>CSV出力</button>
+      <button id="resetButton" class="secondary-button" type="button">リセット</button>
+    </div>
+  </header>
+
+  <main class="app-shell">
+    <section id="setupPanel" class="setup-panel" aria-labelledby="setupTitle">
+      <div>
+        <p class="eyebrow">Setup</p>
+        <h2 id="setupTitle">プレイ条件を選択</h2>
+        <p class="setup-copy">12か月研修モードは基本因果の理解、60か月経営モードは中期的な成長と持続可能性の検討に向いています。</p>
+        <p class="setup-copy purpose-copy">このゲームは利益最大化だけを目指すものではありません。ケアを継続するために、現金・人・品質のバランスをどう守るかを体験する研修ツールです。</p>
+        <div class="mode-help">
+          <p><strong>研修モード:</strong> 12か月で売上、利益、現預金、稼働率、疲弊、品質の関係を学びます。</p>
+          <p><strong>経営モード:</strong> 60か月で年次目標、採用計画、地域信頼、持続可能性を追います。</p>
+          <p><strong>既存引き継ぎ:</strong> 標準的な研修向けです。</p>
+          <p><strong>高稼働疲弊ステーション:</strong> 黒字でも人と品質が苦しい状態を体験できます。</p>
+        </div>
+      </div>
+      <div class="setup-grid">
+        <label><span>プレイ期間</span><select id="playModeSelect"></select></label>
+        <label><span>シナリオ</span><select id="scenarioSelect"></select></label>
+        <label><span>難易度</span><select id="difficultySelect"></select></label>
+      </div>
+      <button id="startButton" class="primary-button" type="button">シミュレーション開始</button>
+    </section>
+
+    <section id="gamePanel" class="game-panel is-hidden" aria-live="polite">
+      <section id="annualTargetBox" class="annual-target-box"></section>
+
+      <section class="status-strip">
+        <div>
+          <span class="status-label">現在</span>
+          <strong id="currentMonth">1年目 1月</strong>
+          <div class="status-caption" id="monthCaption">0 / 12か月経過</div>
+        </div>
+        <div><span class="status-label">現預金</span><strong id="cashMetric">0万円</strong><div id="cashGauge" class="gauge"></div></div>
+        <div><span class="status-label">月額固定費</span><strong id="fixedCostMetric">0万円</strong><div class="status-caption">人件費・家賃・車両・その他</div></div>
+        <div><span class="status-label">月間利益</span><strong id="profitMetric">0万円</strong><div id="profitGauge" class="gauge"></div></div>
+        <div><span class="status-label">今月入金</span><strong id="cashInMetric">0万円</strong></div>
+        <div><span class="status-label">稼働率</span><strong id="utilizationMetric">0%</strong><div id="utilizationGauge" class="gauge"></div></div>
+        <div><span class="status-label">チーム継続リスク</span><strong id="turnoverMetric">0</strong><div id="turnoverGauge" class="gauge"></div></div>
+      </section>
+
+      <section class="month-progress-card">
+        <div class="month-progress-head">
+          <span id="monthProgressLabel">経過月数 0 / 12</span>
+          <span>1か月進むごとにバーが進みます</span>
+        </div>
+        <div id="monthProgressTrack" class="month-progress-track"></div>
+      </section>
+
+      <section class="kpi-grid">
+        <article class="kpi-card"><span>利用者数</span><strong id="usersKpi">0名</strong><small>目安: 35〜50名</small><div id="usersGauge" class="gauge"></div></article>
+        <article class="kpi-card"><span>訪問件数</span><strong id="visitsKpi">0件</strong><small>目安: 280〜360件</small><div id="visitsGauge" class="gauge"></div></article>
+        <article class="kpi-card"><span>スタッフ数</span><strong id="staffKpi">0名</strong><small>初期4名、増員は先行投資</small><div id="staffGauge" class="gauge"></div></article>
+        <article class="kpi-card"><span>地域信頼</span><strong id="trustKpi">0</strong><small>70以上で紹介が増えやすい</small><div id="trustGauge" class="gauge"></div></article>
+        <article class="kpi-card"><span>チーム状態</span><strong id="teamKpi">0</strong><small>70以上を維持したい</small><div id="teamGauge" class="gauge"></div></article>
+        <article class="kpi-card"><span>疲弊度</span><strong id="fatigueKpi">0</strong><small>70以上は危険域</small><div id="fatigueGauge" class="gauge"></div></article>
+        <article class="kpi-card"><span>ケア品質</span><strong id="careKpi">0</strong><small>記録・連携・継続性の総合目安</small><div id="careGauge" class="gauge"></div></article>
+        <article class="kpi-card"><span>請求品質</span><strong id="billingKpi">0</strong><small>60未満で入金遅延リスク</small><div id="billingGauge" class="gauge"></div></article>
+      </section>
+
+      <section class="decision-workbench">
+        <form id="decisionForm" class="decision-panel">
+          <div id="monthSummaryBox" class="month-summary-box"></div>
+          <label><span>利用者受け入れ方針</span><select id="acceptanceSelect"></select></label>
+          <label><span>営業方針</span><select id="salesSelect"></select></label>
+          <label><span>採用方針</span><select id="recruitmentSelect"></select></label>
+          <label><span>チームビルディング</span><select id="teamBuildingSelect"></select></label>
+          <label><span>経営管理</span><select id="managementSelect"></select></label>
+          <label><span>疲弊対策</span><select id="fatigueCareSelect"></select></label>
+          <label><span>資金判断</span><select id="financingSelect"></select></label>
+          <div class="preview-panel">
+            <strong>選択プレビュー</strong>
+            <ul id="decisionPreviewList"></ul>
+          </div>
+          <button id="advanceButton" class="primary-button" type="submit">今月を実行</button>
+        </form>
+
+        <section class="chart-panel">
+          <h2>現預金・利益・稼働率・チーム継続リスクの推移</h2>
+          <div class="legend" aria-label="グラフ凡例">
+            <span><i class="legend-cash"></i>現預金</span>
+            <span><i class="legend-profit"></i>利益</span>
+            <span><i class="legend-utilization"></i>稼働率</span>
+            <span><i class="legend-turnover"></i>チーム継続リスク</span>
+          </div>
+          <canvas id="trendCanvas" width="1000" height="360"></canvas>
+        </section>
+      </section>
+
+      <section class="result-panel">
+        <h2>Result & Learning</h2>
+        <div id="resultSummary" class="result-summary"><p>シミュレーションを開始すると、毎月の結果と学習コメントがここに表示されます。</p></div>
+        <div id="tutorialBox" class="tutorial-box is-hidden"></div>
+        <div id="strategyBox" class="strategy-box is-hidden"></div>
+        <div id="questionBox" class="question-box is-hidden"></div>
+        <div id="eventCard" class="event-card is-hidden"></div>
+        <details id="reasonDetails" class="reason-details is-hidden">
+          <summary>変化した理由を見る</summary>
+          <ul id="reasonList"></ul>
+        </details>
+        <ul id="eventList" class="event-list"></ul>
+      </section>
+    </section>
+
+    <section id="finalPanel" class="final-panel is-hidden">
+      <p class="eyebrow">Review</p>
+      <h2 id="finalTitle">年間振り返り</h2>
+      <div id="finalContent" class="final-content"></div>
+    </section>
+  </main>
+
+  <div id="guideOverlay" class="guide-overlay is-hidden" role="dialog" aria-modal="true" aria-labelledby="guideTitle">
+    <div class="guide-panel">
+      <button id="closeGuideButton" class="icon-button" type="button" aria-label="閉じる">×</button>
+      <h2 id="guideTitle">判断の解説</h2>
+      <details open><summary>利用者受け入れ</summary><p>積極受け入れは売上を伸ばしやすい一方、稼働率・疲弊度・品質に負荷がかかります。</p></details>
+      <details><summary>採用</summary><p>採用費は先に出ます。成功したスタッフは翌月から訪問余力に効きます。</p></details>
+      <details><summary>チーム支援</summary><p>短期の受け入れ余力は下がりますが、チーム状態・ケア品質・継続リスクに効きます。</p></details>
+      <details><summary>資金判断</summary><p>借入は資金ショートを防ぎますが、翌月以降の返済負担が残ります。</p></details>
+      <details><summary>疲弊対策</summary><p>支出や訪問調整を伴いますが、高稼働で蓄積した疲弊を下げるための選択です。</p></details>
+    </div>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="logic.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
