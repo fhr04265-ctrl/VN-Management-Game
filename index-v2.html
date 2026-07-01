@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>ほうもん看護ステーションゲーム v2</title>
+  <link rel="stylesheet" href="styles-v2.css">
+</head>
+<body>
+  <div class="phone-app">
+    <section id="startScreen" class="screen start-screen">
+      <p class="eyebrow">Visit Nursing Management Game</p>
+      <h1>ステーションを<br>育てよう</h1>
+      <p class="lead">よいケアを続けるために、現金・人・品質・地域との信頼を毎月少しずつ整えるゲームです。</p>
+
+      <div class="setup-card">
+        <label>
+          <span>プレイ時間</span>
+          <select id="modeSelect"></select>
+        </label>
+        <label>
+          <span>はじめる状況</span>
+          <select id="scenarioSelect"></select>
+        </label>
+        <label>
+          <span>資金の余裕</span>
+          <select id="difficultySelect"></select>
+        </label>
+      </div>
+
+      <button id="startButton" class="big-button">はじめる</button>
+      <p class="tiny-note">数字はあとから見られます。まずは今月の判断を選んでみましょう。</p>
+    </section>
+
+    <section id="gameScreen" class="screen game-screen is-hidden">
+      <header class="game-header">
+        <div>
+          <span id="seasonLabel" class="season">1年目 1月</span>
+          <h2 id="missionTitle">今月のミッション</h2>
+        </div>
+        <button id="resetButton" class="ghost-button">最初へ</button>
+      </header>
+
+      <main class="tab-page is-active" data-page="home">
+        <div id="storyCard" class="story-card"></div>
+        <div class="vitals-grid">
+          <article class="vital-card cash">
+            <span>現金</span>
+            <strong id="cashValue">0万円</strong>
+            <div class="meter"><i id="cashMeter"></i></div>
+          </article>
+          <article class="vital-card team">
+            <span>チームの余裕</span>
+            <strong id="teamValue">0</strong>
+            <div class="meter"><i id="teamMeter"></i></div>
+          </article>
+          <article class="vital-card care">
+            <span>ケアの安定</span>
+            <strong id="careValue">0</strong>
+            <div class="meter"><i id="careMeter"></i></div>
+          </article>
+          <article class="vital-card users">
+            <span>利用者さん</span>
+            <strong id="usersValue">0名</strong>
+            <div class="meter"><i id="usersMeter"></i></div>
+          </article>
+        </div>
+
+        <div class="month-progress">
+          <div><span id="monthProgressText">0 / 12か月</span><span id="moodLabel">落ち着いた月</span></div>
+          <div class="progress-bar"><i id="monthProgressBar"></i></div>
+        </div>
+
+        <button class="big-button next-tab" data-target="choice">今月の方針を選ぶ</button>
+      </main>
+
+      <main class="tab-page" data-page="choice">
+        <div class="choice-head">
+          <span class="mini-label">1か月1判断</span>
+          <h2>今月は、何を大事にしますか？</h2>
+        </div>
+        <div id="actionCards" class="action-cards"></div>
+        <button id="advanceButton" class="big-button">この方針で1か月進める</button>
+      </main>
+
+      <main class="tab-page" data-page="result">
+        <div id="resultCard" class="result-card empty">
+          <span class="mini-label">月末</span>
+          <h2>まだ月末結果はありません</h2>
+          <p>今月の方針を選んで1か月進めると、現場の声と学びが表示されます。</p>
+        </div>
+        <div id="badgeRow" class="badge-row"></div>
+        <button class="big-button next-tab" data-target="choice">次の月を考える</button>
+      </main>
+
+      <main class="tab-page" data-page="review">
+        <section class="review-card">
+          <span class="mini-label">ふりかえり</span>
+          <h2 id="reviewTitle">ステーションの軌跡</h2>
+          <canvas id="trendCanvas" width="700" height="320"></canvas>
+        </section>
+        <section class="detail-card">
+          <button id="toggleDetails" class="detail-toggle">詳しい数字を見る</button>
+          <div id="detailPanel" class="detail-panel is-hidden"></div>
+        </section>
+        <button id="exportCsvButton" class="ghost-button wide">CSVを出力</button>
+      </main>
+
+      <nav class="bottom-tabs">
+        <button class="tab-button is-active" data-target="home">ホーム</button>
+        <button class="tab-button" data-target="choice">判断</button>
+        <button class="tab-button" data-target="result">結果</button>
+        <button class="tab-button" data-target="review">振返り</button>
+      </nav>
+    </section>
+
+    <section id="finalOverlay" class="final-overlay is-hidden">
+      <div class="final-sheet">
+        <span class="mini-label">クリア</span>
+        <h2 id="finalRank">年間振り返り</h2>
+        <div id="finalText"></div>
+        <button id="closeFinalButton" class="big-button">振り返りを見る</button>
+      </div>
+    </section>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="logic.js"></script>
+  <script src="app-v2.js"></script>
+</body>
+</html>
