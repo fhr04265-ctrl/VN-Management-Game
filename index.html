@@ -14,22 +14,13 @@
       <p class="lead">よいケアを続けるために、現金・人・品質・地域との信頼を毎月少しずつ整えるゲームです。</p>
 
       <div class="setup-card">
-        <label>
-          <span>プレイ時間</span>
-          <select id="modeSelect"></select>
-        </label>
-        <label>
-          <span>はじめる状況</span>
-          <select id="scenarioSelect"></select>
-        </label>
-        <label>
-          <span>資金の余裕</span>
-          <select id="difficultySelect"></select>
-        </label>
+        <label><span>プレイ時間</span><select id="modeSelect"></select></label>
+        <label><span>はじめる状況</span><select id="scenarioSelect"></select></label>
+        <label><span>資金の余裕</span><select id="difficultySelect"></select></label>
       </div>
 
       <button id="startButton" class="big-button">はじめる</button>
-      <p class="tiny-note">数字はあとから見られます。まずは今月の判断を選んでみましょう。</p>
+      <p class="tiny-note">今月の数字を見て、いくつかの経営レバーを組み合わせて進めます。</p>
     </section>
 
     <section id="gameScreen" class="screen game-screen is-hidden">
@@ -44,43 +35,53 @@
       <main class="tab-page is-active" data-page="home">
         <div id="storyCard" class="story-card"></div>
         <div class="vitals-grid">
-          <article class="vital-card cash">
-            <span>現金</span>
-            <strong id="cashValue">0万円</strong>
-            <div class="meter"><i id="cashMeter"></i></div>
-          </article>
-          <article class="vital-card team">
-            <span>チームの余裕</span>
-            <strong id="teamValue">0</strong>
-            <div class="meter"><i id="teamMeter"></i></div>
-          </article>
-          <article class="vital-card care">
-            <span>ケアの安定</span>
-            <strong id="careValue">0</strong>
-            <div class="meter"><i id="careMeter"></i></div>
-          </article>
-          <article class="vital-card users">
-            <span>利用者さん</span>
-            <strong id="usersValue">0名</strong>
-            <div class="meter"><i id="usersMeter"></i></div>
-          </article>
+          <article class="vital-card cash"><span>現金</span><strong id="cashValue">0万円</strong><div class="meter"><i id="cashMeter"></i></div></article>
+          <article class="vital-card team"><span>チームの余裕</span><strong id="teamValue">0</strong><div class="meter"><i id="teamMeter"></i></div></article>
+          <article class="vital-card care"><span>ケアの安定</span><strong id="careValue">0</strong><div class="meter"><i id="careMeter"></i></div></article>
+          <article class="vital-card users"><span>利用者さん</span><strong id="usersValue">0名</strong><div class="meter"><i id="usersMeter"></i></div></article>
         </div>
+
+        <section id="plSnapshot" class="pl-card"></section>
 
         <div class="month-progress">
           <div><span id="monthProgressText">0 / 12か月</span><span id="moodLabel">落ち着いた月</span></div>
           <div class="progress-bar"><i id="monthProgressBar"></i></div>
         </div>
 
-        <button class="big-button next-tab" data-target="choice">今月の方針を選ぶ</button>
+        <button class="big-button next-tab" data-target="choice">今月の判断へ</button>
       </main>
 
       <main class="tab-page" data-page="choice">
         <div class="choice-head">
-          <span class="mini-label">1か月1判断</span>
-          <h2>今月は、何を大事にしますか？</h2>
+          <span class="mini-label">複数レバーで考える</span>
+          <h2>売上・人・品質・コストをどう組み合わせますか？</h2>
         </div>
-        <div id="actionCards" class="action-cards"></div>
-        <button id="advanceButton" class="big-button">この方針で1か月進める</button>
+
+        <section class="preset-row" id="presetCards"></section>
+
+        <section class="lever-panel">
+          <label><span>受け入れ</span><select id="acceptanceLever"></select></label>
+          <label><span>営業活動</span><select id="salesLever"></select></label>
+          <label><span>採用</span><select id="recruitmentLever"></select></label>
+          <label><span>チーム</span><select id="teamLever"></select></label>
+          <label><span>経営管理</span><select id="managementLever"></select></label>
+          <label><span>疲弊対策</span><select id="fatigueLever"></select></label>
+          <label><span>資金</span><select id="financingLever"></select></label>
+        </section>
+
+        <section id="choicePlPreview" class="pl-card"></section>
+        <button id="advanceButton" class="big-button">この組み合わせで1か月進める</button>
+      </main>
+
+      <main class="tab-page" data-page="impact">
+        <div class="choice-head">
+          <span class="mini-label">判断 → 数字の変化</span>
+          <h2>今月、何が動いたか</h2>
+        </div>
+        <section id="impactDashboard" class="impact-dashboard"></section>
+        <section id="impactPl" class="pl-card"></section>
+        <section id="impactExplanation" class="story-card"></section>
+        <button class="big-button next-tab" data-target="result">現場の声を見る</button>
       </main>
 
       <main class="tab-page" data-page="result">
@@ -109,6 +110,7 @@
       <nav class="bottom-tabs">
         <button class="tab-button is-active" data-target="home">ホーム</button>
         <button class="tab-button" data-target="choice">判断</button>
+        <button class="tab-button" data-target="impact">変化</button>
         <button class="tab-button" data-target="result">結果</button>
         <button class="tab-button" data-target="review">振返り</button>
       </nav>
