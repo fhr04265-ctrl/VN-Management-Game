@@ -3,9 +3,11 @@
 
   const data = window.SIM_DATA;
   const logic = window.SimLogic;
+  const constants = data.constants;
+
   let state = null;
+  let previousState = null;
   let lastResult = null;
-  let selectedAction = "balance";
   let maxMonths = 12;
   let activeMode = "training12";
 
@@ -35,8 +37,20 @@
     monthProgressText: $("monthProgressText"),
     monthProgressBar: $("monthProgressBar"),
     moodLabel: $("moodLabel"),
-    actionCards: $("actionCards"),
+    plSnapshot: $("plSnapshot"),
+    presetCards: $("presetCards"),
+    acceptanceLever: $("acceptanceLever"),
+    salesLever: $("salesLever"),
+    recruitmentLever: $("recruitmentLever"),
+    teamLever: $("teamLever"),
+    managementLever: $("managementLever"),
+    fatigueLever: $("fatigueLever"),
+    financingLever: $("financingLever"),
+    choicePlPreview: $("choicePlPreview"),
     advanceButton: $("advanceButton"),
+    impactDashboard: $("impactDashboard"),
+    impactPl: $("impactPl"),
+    impactExplanation: $("impactExplanation"),
     resultCard: $("resultCard"),
     badgeRow: $("badgeRow"),
     trendCanvas: $("trendCanvas"),
@@ -46,97 +60,47 @@
     finalText: $("finalText")
   };
 
-  const actions = {
-    balance: {
-      icon: "◎",
-      title: "バランスを見る",
-      copy: "受け入れ・チーム・請求を大きく崩さず、今月の状態を整えます。",
-      impacts: ["安定", "迷ったらここ"],
-      decisions: {
-        acceptance: "standard",
-        sales: "moderate",
-        recruitment: "none",
-        teamBuilding: "normal",
-        management: "billing",
-        fatigueCare: "none",
-        financing: "none"
-      }
+  const presets = {
+    balanced: {
+      title: "安定運営",
+      copy: "標準受け入れ、請求管理、無理のない運営。",
+      decisions: { acceptance: "standard", sales: "moderate", recruitment: "none", teamBuilding: "normal", management: "billing", fatigueCare: "none", financing: "none" }
     },
-    grow: {
-      icon: "↗",
-      title: "利用者さんを増やす",
-      copy: "紹介を取りに行き、受け入れも強めます。売上は伸びやすい一方で負荷も増えます。",
-      impacts: ["売上↑", "疲弊↑"],
-      decisions: {
-        acceptance: "aggressive",
-        sales: "active",
-        recruitment: "none",
-        teamBuilding: "normal",
-        management: "utilization",
-        fatigueCare: "none",
-        financing: "none"
-      }
+    growth: {
+      title: "成長優先",
+      copy: "営業と受け入れを強め、売上を伸ばす。",
+      decisions: { acceptance: "aggressive", sales: "active", recruitment: "normal", teamBuilding: "normal", management: "utilization", fatigueCare: "none", financing: "none" }
     },
     team: {
-      icon: "＋",
-      title: "チームを整える",
-      copy: "面談・会議・休息を優先します。短期成長は少し緩みますが、続ける力を戻します。",
-      impacts: ["余裕↑", "成長↓"],
-      decisions: {
-        acceptance: "cautious",
-        sales: "maintenance",
-        recruitment: "none",
-        teamBuilding: "meeting",
-        management: "billing",
-        fatigueCare: "visitControl",
-        financing: "none"
-      }
+      title: "チーム回復",
+      copy: "受け入れを抑え、疲弊と継続リスクを下げる。",
+      decisions: { acceptance: "cautious", sales: "maintenance", recruitment: "none", teamBuilding: "meeting", management: "billing", fatigueCare: "visitControl", financing: "none" }
     },
-    hire: {
-      icon: "人",
-      title: "採用に動く",
-      copy: "将来の訪問余力を作ります。費用は先に出て、効果は翌月以降に出ます。",
-      impacts: ["体制↑", "現金↓"],
-      decisions: {
-        acceptance: "standard",
-        sales: "moderate",
-        recruitment: "active",
-        teamBuilding: "training",
-        management: "billing",
-        fatigueCare: "none",
-        financing: "none"
-      }
+    capacity: {
+      title: "体制づくり",
+      copy: "採用と教育を進め、未来のケア時間を作る。",
+      decisions: { acceptance: "standard", sales: "moderate", recruitment: "active", teamBuilding: "training", management: "billing", fatigueCare: "adminSupport", financing: "none" }
     },
     quality: {
-      icon: "★",
-      title: "品質と単価を育てる",
-      copy: "請求・加算・制度対応を進めます。すぐ派手には伸びませんが、未来の土台になります。",
-      impacts: ["単価↑", "信頼↑"],
-      decisions: {
-        acceptance: "standard",
-        sales: "moderate",
-        recruitment: "none",
-        teamBuilding: "training",
-        management: "addOn",
-        fatigueCare: "adminSupport",
-        financing: "none"
-      }
+      title: "単価・品質",
+      copy: "加算、請求、教育に寄せて利益体質を作る。",
+      decisions: { acceptance: "standard", sales: "moderate", recruitment: "none", teamBuilding: "training", management: "addOn", fatigueCare: "adminSupport", financing: "none" }
     },
     cash: {
-      icon: "守",
-      title: "現金を守る",
-      copy: "支出を抑え、必要なら借入でショートを避けます。成長より継続を優先します。",
-      impacts: ["資金↑", "成長↓"],
-      decisions: {
-        acceptance: "cautious",
-        sales: "maintenance",
-        recruitment: "none",
-        teamBuilding: "normal",
-        management: "billing",
-        fatigueCare: "none",
-        financing: "borrow300"
-      }
+      title: "資金防衛",
+      copy: "現金ショートを避け、来月へつなぐ。",
+      decisions: { acceptance: "cautious", sales: "maintenance", recruitment: "none", teamBuilding: "normal", management: "billing", fatigueCare: "none", financing: "borrow300" }
     }
+  };
+
+  const leverMap = {
+    acceptance: "acceptanceLever",
+    sales: "salesLever",
+    recruitment: "recruitmentLever",
+    teamBuilding: "teamLever",
+    management: "managementLever",
+    fatigueCare: "fatigueLever",
+    financing: "financingLever"
   };
 
   function money(value) {
@@ -145,6 +109,13 @@
 
   function pct(value) {
     return `${Math.round((value || 0) * 100)}%`;
+  }
+
+  function signed(value, formatter = (v) => v) {
+    const rounded = Math.round(value);
+    if (rounded > 0) return `+${formatter(rounded)}`;
+    if (rounded < 0) return `-${formatter(Math.abs(rounded))}`;
+    return "±0";
   }
 
   function fillSelect(select, options, defaultKey) {
@@ -156,6 +127,26 @@
       select.appendChild(option);
     });
     select.value = defaultKey;
+  }
+
+  function currentDecisions() {
+    return {
+      acceptance: el.acceptanceLever.value,
+      sales: el.salesLever.value,
+      recruitment: el.recruitmentLever.value,
+      teamBuilding: el.teamLever.value,
+      management: el.managementLever.value,
+      fatigueCare: el.fatigueLever.value,
+      financing: el.financingLever.value
+    };
+  }
+
+  function applyPreset(key) {
+    const preset = presets[key];
+    Object.entries(preset.decisions).forEach(([decisionKey, value]) => {
+      el[leverMap[decisionKey]].value = value;
+    });
+    renderChoicePreview();
   }
 
   function showPage(page) {
@@ -172,6 +163,29 @@
     return { year: Math.ceil(month / 12), month: ((month - 1) % 12) + 1 };
   }
 
+  function fixedCostFor(targetState) {
+    const vehicle = targetState.staff * constants.carCost;
+    let scale = 0;
+    if (targetState.staff >= 16) scale = constants.scaleAdminCost16 || 800000;
+    else if (targetState.staff >= 12) scale = constants.scaleAdminCost12 || 500000;
+    else if (targetState.staff >= 8) scale = constants.scaleAdminCost8 || 300000;
+    return targetState.staff * constants.staffCost + constants.rentCost + constants.otherFixedCost + vehicle + scale;
+  }
+
+  function getPL(targetState, result) {
+    const visits = result?.visits ?? targetState.visits;
+    const users = result?.usersAfter ?? targetState.users;
+    const staff = result?.staff ?? targetState.staff;
+    const price = result?.averageVisitPrice ?? targetState.averageVisitPrice;
+    const revenue = result?.revenue ?? visits * price;
+    const cost = result?.totalExpense ?? fixedCostFor(targetState);
+    const profit = result?.monthlyProfit ?? revenue - cost;
+    const careHours = Math.round(visits);
+    const carePerStaff = staff ? Math.round(careHours / staff) : 0;
+    const carePerUser = users ? Math.round((careHours / users) * 10) / 10 : 0;
+    return { users, staff, visits, price, revenue, cost, profit, careHours, carePerStaff, carePerUser };
+  }
+
   function metricHealth() {
     if (!state) return "落ち着いた月";
     if (state.gameOver) return "継続危機";
@@ -183,7 +197,6 @@
   }
 
   function storyText() {
-    if (!state) return "";
     const lines = [];
     if (state.cash < 3000000) lines.push("現金の余裕が少なく、次の支払いを意識した判断が必要です。");
     if (state.utilization >= 0.92) lines.push("利用者さんは増えていますが、訪問の詰まりが見え始めています。");
@@ -194,11 +207,10 @@
   }
 
   function missionText() {
-    if (!state) return "今月のミッション";
     if (state.cash < 3000000) return "現金を守ろう";
     if (state.fatigue >= 70 || state.turnoverRisk >= 65) return "チームを守ろう";
     if (state.careQuality < 60 || state.billingQuality < 60) return "品質を戻そう";
-    if (state.utilization < 0.75) return "利用者さんを増やそう";
+    if (state.utilization < 0.75) return "ケア時間を増やそう";
     return "よいバランスを続けよう";
   }
 
@@ -206,48 +218,76 @@
     node.style.width = `${Math.max(0, Math.min(100, value))}%`;
   }
 
+  function renderPLCard(node, title, pl, mode = "normal") {
+    const profitClass = pl.profit >= 0 ? "good" : "bad";
+    node.innerHTML = `
+      <span class="mini-label">${title}</span>
+      <div class="pl-main ${profitClass}">
+        <strong>${money(pl.profit)}</strong>
+        <span>利益 = 売上 ${money(pl.revenue)} - コスト ${money(pl.cost)}</span>
+      </div>
+      <div class="formula-stack">
+        <div><b>売上</b><span>総ケア時間 ${pl.careHours}件 × 単価 ${Math.round(pl.price).toLocaleString("ja-JP")}円</span></div>
+        <div><b>総ケア時間</b><span>利用者 ${pl.users}名 × 顧客あたり ${pl.carePerUser}件</span></div>
+        <div><b>スタッフ負荷</b><span>${pl.staff}名 × 1人あたり ${pl.carePerStaff}件</span></div>
+        <div><b>コスト</b><span>人件費 + 採用費 + その他販管費</span></div>
+      </div>
+      ${mode === "preview" ? "<p class=\"pl-note\">この構造を見ながら、受け入れ・営業・採用・品質投資を組み合わせます。</p>" : ""}
+    `;
+  }
+
   function renderHome() {
     const current = Math.min(state.month, maxMonths);
     const ym = getYearMonth(current);
+    const teamScore = Math.max(0, Math.round((state.teamCondition + (100 - state.fatigue) + (100 - state.turnoverRisk)) / 3));
+    const careScore = Math.max(0, Math.round((state.careQuality + state.billingQuality) / 2));
     el.seasonLabel.textContent = `${ym.year}年目 ${ym.month}月`;
     el.missionTitle.textContent = missionText();
     el.storyCard.innerHTML = `<strong>${metricHealth()}</strong><p>${storyText()}</p>`;
     el.cashValue.textContent = money(state.cash);
-    el.teamValue.textContent = String(Math.max(0, Math.round((state.teamCondition + (100 - state.fatigue) + (100 - state.turnoverRisk)) / 3)));
-    el.careValue.textContent = String(Math.max(0, Math.round((state.careQuality + state.billingQuality) / 2)));
+    el.teamValue.textContent = String(teamScore);
+    el.careValue.textContent = String(careScore);
     el.usersValue.textContent = `${state.users}名`;
     setMeter(el.cashMeter, state.cash / 100000);
-    setMeter(el.teamMeter, Math.max(0, Math.round((state.teamCondition + (100 - state.fatigue) + (100 - state.turnoverRisk)) / 3)));
-    setMeter(el.careMeter, Math.max(0, Math.round((state.careQuality + state.billingQuality) / 2)));
+    setMeter(el.teamMeter, teamScore);
+    setMeter(el.careMeter, careScore);
     setMeter(el.usersMeter, Math.min(100, state.users / 1.8));
     const done = Math.max(0, Math.min(maxMonths, state.month - 1));
     el.monthProgressText.textContent = `${done} / ${maxMonths}か月`;
     el.monthProgressBar.style.width = `${(done / maxMonths) * 100}%`;
     el.moodLabel.textContent = metricHealth();
+    renderPLCard(el.plSnapshot, "今月のPL構造", getPL(state), "preview");
   }
 
-  function renderActions() {
-    el.actionCards.textContent = "";
-    Object.entries(actions).forEach(([key, action]) => {
+  function renderPresets() {
+    el.presetCards.textContent = "";
+    Object.entries(presets).forEach(([key, preset]) => {
       const button = document.createElement("button");
       button.type = "button";
-      button.className = `action-card${key === selectedAction ? " is-selected" : ""}`;
-      button.dataset.action = key;
-      const impacts = action.impacts.map((impact) => `<span>${impact}</span>`).join("");
-      button.innerHTML = `
-        <div class="action-icon">${action.icon}</div>
-        <div>
-          <h3>${action.title}</h3>
-          <p>${action.copy}</p>
-          <div class="impact-row">${impacts}</div>
-        </div>
-      `;
-      button.addEventListener("click", () => {
-        selectedAction = key;
-        renderActions();
-      });
-      el.actionCards.appendChild(button);
+      button.className = "preset-card";
+      button.innerHTML = `<strong>${preset.title}</strong><span>${preset.copy}</span>`;
+      button.addEventListener("click", () => applyPreset(key));
+      el.presetCards.appendChild(button);
     });
+  }
+
+  function renderChoicePreview() {
+    if (!state) return;
+    const d = currentDecisions();
+    const synthetic = { ...state };
+    const acceptance = data.decisions.acceptance[d.acceptance];
+    const sales = data.decisions.sales[d.sales];
+    const recruitment = data.decisions.recruitment[d.recruitment];
+    const management = data.decisions.management[d.management];
+    const fatigueCare = data.decisions.fatigueCare[d.fatigueCare];
+    const roughNewUsers = Math.round(((sales.minUsers || 0) + (sales.maxUsers || 0)) / 2 + (acceptance.deltaUsers || 0));
+    synthetic.users = Math.max(0, state.users + roughNewUsers - Math.round(state.users * constants.userExitRate));
+    synthetic.visits = Math.max(0, synthetic.users * constants.visitsPerUser + (management.visitAdjust || 0) + (fatigueCare.visitAdjust || 0));
+    synthetic.staff = state.staff;
+    const previewCost = fixedCostFor(synthetic) + (recruitment.monthlyCost || 0) + (management.cost || 0) + (fatigueCare.cost || 0);
+    const previewRevenue = synthetic.visits * state.averageVisitPrice;
+    const pl = getPL(synthetic, { visits: synthetic.visits, usersAfter: synthetic.users, staff: synthetic.staff, averageVisitPrice: state.averageVisitPrice, revenue: previewRevenue, totalExpense: previewCost, monthlyProfit: previewRevenue - previewCost });
+    renderPLCard(el.choicePlPreview, "選択中のざっくりPL", pl, "preview");
   }
 
   function voiceForResult(result) {
@@ -270,6 +310,31 @@
     if (result.hired) list.push("採用成功");
     if (result.cash > 5000000 && result.monthlyProfit > 0) list.push("資金安定");
     return list.slice(0, 4);
+  }
+
+  function deltaCard(label, before, after, formatter, lowerBetter = false) {
+    const diff = after - before;
+    const good = lowerBetter ? diff <= 0 : diff >= 0;
+    return `<div class="delta-card ${good ? "good" : "bad"}"><span>${label}</span><strong>${formatter(after)}</strong><small>${signed(diff, (v) => formatter(v).replace("万円", ""))}</small></div>`;
+  }
+
+  function renderImpact(result) {
+    const before = previousState;
+    el.impactDashboard.innerHTML = [
+      deltaCard("現金", before.cash, result.cash, money),
+      deltaCard("利益", before.monthlyProfit, result.monthlyProfit, money),
+      deltaCard("利用者", before.users, result.usersAfter, (v) => `${Math.round(v)}名`),
+      deltaCard("訪問件数", before.visits, result.visits, (v) => `${Math.round(v)}件`),
+      deltaCard("稼働率", before.utilization * 100, result.utilization * 100, (v) => `${Math.round(v)}%`, true),
+      deltaCard("疲弊度", before.fatigue, result.fatigue, (v) => `${Math.round(v)}`, true)
+    ].join("");
+    renderPLCard(el.impactPl, "今月のPL変換", getPL(state, result));
+    const points = [];
+    points.push(`売上は「${result.visits}件 × ${Math.round(result.averageVisitPrice).toLocaleString("ja-JP")}円」で決まりました。`);
+    points.push(`コストには固定費に加え、採用費・投資費・疲弊対策費が乗ります。`);
+    if (result.cashIn !== result.revenue) points.push("売上と入金はズレます。今月の売上はすぐ現金になりません。");
+    if (result.utilization >= 0.9) points.push("稼働が高いため、利益が出ても疲弊や品質に負荷が出ます。");
+    el.impactExplanation.innerHTML = `<strong>この判断で起きたこと</strong><p>${points.join(" ")}</p>`;
   }
 
   function renderResult(result) {
@@ -372,7 +437,7 @@
 
   function renderAll() {
     renderHome();
-    renderActions();
+    renderChoicePreview();
     renderDetails();
     drawTrend();
   }
@@ -381,23 +446,26 @@
     activeMode = el.modeSelect.value;
     maxMonths = data.playModes[activeMode].months;
     state = logic.createInitialState(el.scenarioSelect.value, el.difficultySelect.value);
+    previousState = null;
     lastResult = null;
-    selectedAction = "balance";
     el.startScreen.classList.add("is-hidden");
     el.gameScreen.classList.remove("is-hidden");
     el.finalOverlay.classList.add("is-hidden");
+    applyPreset("balanced");
     renderAll();
     showPage("home");
   }
 
   function advanceMonth() {
     if (!state || state.gameOver || state.month > maxMonths) return;
-    const outcome = logic.advanceMonth(state, actions[selectedAction].decisions);
+    previousState = { ...state };
+    const outcome = logic.advanceMonth(state, currentDecisions());
     state = outcome.state;
     lastResult = outcome.result;
     renderAll();
+    renderImpact(lastResult);
     renderResult(lastResult);
-    showPage("result");
+    showPage("impact");
     if (state.gameOver || state.month > maxMonths) showFinal();
   }
 
@@ -419,21 +487,8 @@
     if (!state || !state.history.length) return;
     const headers = ["month", "cash", "revenue", "profit", "cashIn", "users", "visits", "staff", "utilization", "team", "fatigue", "risk", "care", "billing", "trust"];
     const rows = state.history.map((row) => [
-      row.month,
-      row.cash,
-      row.revenue,
-      row.monthlyProfit,
-      row.cashIn,
-      row.usersAfter,
-      row.visits,
-      row.staff,
-      Math.round(row.utilization * 1000) / 10,
-      row.teamCondition,
-      row.fatigue,
-      row.turnoverRisk,
-      row.careQuality,
-      row.billingQuality,
-      row.regionalTrust
+      row.month, row.cash, row.revenue, row.monthlyProfit, row.cashIn, row.usersAfter, row.visits, row.staff,
+      Math.round(row.utilization * 1000) / 10, row.teamCondition, row.fatigue, row.turnoverRisk, row.careQuality, row.billingQuality, row.regionalTrust
     ]);
     const csv = [headers, ...rows].map((row) => row.map((value) => `"${String(value ?? "").replace(/"/g, '""')}"`).join(",")).join("\r\n");
     const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
@@ -449,6 +504,15 @@
     fillSelect(el.modeSelect, data.playModes, "training12");
     fillSelect(el.scenarioSelect, data.scenarios, "existing");
     fillSelect(el.difficultySelect, data.difficulties, "normal");
+    fillSelect(el.acceptanceLever, data.decisions.acceptance, "standard");
+    fillSelect(el.salesLever, data.decisions.sales, "moderate");
+    fillSelect(el.recruitmentLever, data.decisions.recruitment, "none");
+    fillSelect(el.teamLever, data.decisions.teamBuilding, "normal");
+    fillSelect(el.managementLever, data.decisions.management, "billing");
+    fillSelect(el.fatigueLever, data.decisions.fatigueCare, "none");
+    fillSelect(el.financingLever, data.decisions.financing, "none");
+    renderPresets();
+    Object.values(leverMap).forEach((id) => el[id].addEventListener("change", renderChoicePreview));
     el.startButton.addEventListener("click", startGame);
     el.resetButton.addEventListener("click", () => {
       el.gameScreen.classList.add("is-hidden");
