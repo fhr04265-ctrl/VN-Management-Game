@@ -13,10 +13,12 @@
   let selectedPresetKey = "balanced";
 
   const $ = (id) => document.getElementById(id);
+  const appRoot = document.querySelector(".phone-app");
   const el = {
     startScreen: $("startScreen"),
     gameScreen: $("gameScreen"),
     finalOverlay: $("finalOverlay"),
+    displayModeSelect: $("displayModeSelect"),
     modeSelect: $("modeSelect"),
     scenarioSelect: $("scenarioSelect"),
     difficultySelect: $("difficultySelect"),
@@ -207,6 +209,19 @@
       button.classList.toggle("is-active", button.dataset.target === page);
     });
     if (page === "review") drawTrend();
+  }
+
+  function preferredDisplayMode() {
+    const selected = el.displayModeSelect.value;
+    if (selected === "desktop") return "desktop";
+    if (selected === "mobile") return "mobile";
+    return window.matchMedia("(min-width: 820px)").matches ? "desktop" : "mobile";
+  }
+
+  function applyDisplayMode() {
+    const mode = preferredDisplayMode();
+    appRoot.classList.toggle("desktop-mode", mode === "desktop");
+    appRoot.classList.toggle("mobile-mode", mode === "mobile");
   }
 
   function getYearMonth(month) {
@@ -523,6 +538,7 @@
   }
 
   function startGame() {
+    applyDisplayMode();
     activeMode = el.modeSelect.value;
     maxMonths = data.playModes[activeMode].months;
     state = logic.createInitialState(el.scenarioSelect.value, el.difficultySelect.value);
@@ -582,6 +598,8 @@
   }
 
   function init() {
+    el.displayModeSelect.value = "auto";
+    applyDisplayMode();
     fillSelect(el.modeSelect, data.playModes, "training12");
     fillSelect(el.scenarioSelect, data.scenarios, "existing");
     fillSelect(el.difficultySelect, data.difficulties, "normal");
@@ -593,6 +611,16 @@
     fillSelect(el.fatigueLever, data.decisions.fatigueCare, "none", "fatigueCare");
     fillSelect(el.financingLever, data.decisions.financing, "none", "financing");
     renderPresets();
+    el.displayModeSelect.addEventListener("change", () => {
+      applyDisplayMode();
+      drawTrend();
+    });
+    window.addEventListener("resize", () => {
+      if (el.displayModeSelect.value === "auto") {
+        applyDisplayMode();
+        drawTrend();
+      }
+    });
     Object.values(leverMap).forEach((id) => el[id].addEventListener("change", () => {
       selectedPresetKey = "";
       renderPresets();
