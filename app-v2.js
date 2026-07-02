@@ -118,12 +118,59 @@
     return "±0";
   }
 
-  function fillSelect(select, options, defaultKey) {
+  function impactLabel(category, key, value) {
+    const labels = {
+      acceptance: {
+        cautious: "利用者- / 品質+",
+        standard: "利用者± / 負荷±",
+        aggressive: "利用者++ / 負荷+"
+      },
+      sales: {
+        active: "紹介++ / 信頼+",
+        moderate: "紹介+ / 信頼+",
+        maintenance: "紹介少 / 維持",
+        none: "紹介- / 信頼-"
+      },
+      recruitment: {
+        none: "費用0 / 採用なし",
+        normal: "費用10万 / 採用力+",
+        active: "費用10万+成功40万 / 採用力++",
+        agency: "成功120万 / 採用力+++"
+      },
+      teamBuilding: {
+        normal: "変化小",
+        oneOnOne: "継続リスク--",
+        training: "品質+ / 受入余力-",
+        meeting: "チーム++ / 疲弊-"
+      },
+      management: {
+        utilization: "訪問+ / 疲弊+",
+        billing: "請求+ / 訪問-",
+        addOn: "単価+準備 / 訪問-",
+        efficiency: "費用20万+ / 疲弊-"
+      },
+      fatigueCare: {
+        none: "費用0",
+        adminSupport: "費用20万 / 疲弊-",
+        visitControl: "費用30万 / 疲弊-- / 訪問-",
+        recoveryMonth: "費用50万 / 疲弊--- / 訪問--"
+      },
+      financing: {
+        none: "借入0",
+        borrow300: "現金+300万 / 返済+",
+        borrow500: "現金+500万 / 返済++"
+      }
+    };
+    return labels[category]?.[key] || value.note || "";
+  }
+
+  function fillSelect(select, options, defaultKey, category = null) {
     select.textContent = "";
     Object.entries(options).forEach(([key, value]) => {
       const option = document.createElement("option");
       option.value = key;
-      option.textContent = value.label;
+      const impact = category ? impactLabel(category, key, value) : "";
+      option.textContent = impact ? `${value.label}｜${impact}` : value.label;
       select.appendChild(option);
     });
     select.value = defaultKey;
@@ -180,10 +227,13 @@
     const revenue = result?.revenue ?? visits * price;
     const cost = result?.totalExpense ?? fixedCostFor(targetState);
     const profit = result?.monthlyProfit ?? revenue - cost;
+    const laborCost = result?.laborCost ?? staff * constants.staffCost;
+    const recruitmentCost = result?.recruitmentCost ?? 0;
+    const sgnaCost = Math.max(0, cost - laborCost - recruitmentCost);
     const careHours = Math.round(visits);
     const carePerStaff = staff ? Math.round(careHours / staff) : 0;
     const carePerUser = users ? Math.round((careHours / users) * 10) / 10 : 0;
-    return { users, staff, visits, price, revenue, cost, profit, careHours, carePerStaff, carePerUser };
+    return { users, staff, visits, price, revenue, cost, profit, laborCost, recruitmentCost, sgnaCost, careHours, carePerStaff, carePerUser };
   }
 
   function metricHealth() {
@@ -227,13 +277,25 @@
         <span>利益 = 売上 ${money(pl.revenue)} - コスト ${money(pl.cost)}</span>
       </div>
       <div class="formula-stack">
-        <div><b>売上</b><span>総ケア時間 ${pl.careHours}件 × 単価 ${Math.round(pl.price).toLocaleString("ja-JP")}円</span></div>
-        <div><b>総ケア時間</b><span>利用者 ${pl.users}名 × 顧客あたり ${pl.carePerUser}件</span></div>
-        <div><b>スタッフ負荷</b><span>${pl.staff}名 × 1人あたり ${pl.carePerStaff}件</span></div>
-        <div><b>コスト</b><span>人件費 + 採用費 + その他販管費</span></div>
+        <div><b>売上</b><span>総ケア時間 ${pl.careHours}時間 × 単価 ${Math.round(pl.price).toLocaleString("ja-JP")}円</span></div>
+        <div><b>総ケア時間</b><span>利用者 ${pl.users}名 × 顧客あたり ${pl.carePerUser}ケア時間</span></div>
+        <div><b>スタッフ負荷</b><span>${pl.staff}名 × 1人あたり ${pl.carePerStaff}ケア時間</span></div>
+        <div><b>コスト ${money(pl.cost)}</b><span>人件費 ${money(pl.laborCost)} + 採用費 ${money(pl.recruitmentCost)} + その他販管費 ${money(pl.sgnaCost)}</span></div>
       </div>
       ${mode === "preview" ? "<p class=\"pl-note\">この構造を見ながら、受け入れ・営業・採用・品質投資を組み合わせます。</p>" : ""}
     `;
+  }
+
+  function selectedImpactChips(decisions) {
+    return [
+      ["受け入れ", "acceptance", decisions.acceptance, data.decisions.acceptance[decisions.acceptance]],
+      ["営業", "sales", decisions.sales, data.decisions.sales[decisions.sales]],
+      ["採用", "recruitment", decisions.recruitment, data.decisions.recruitment[decisions.recruitment]],
+      ["チーム", "teamBuilding", decisions.teamBuilding, data.decisions.teamBuilding[decisions.teamBuilding]],
+      ["管理", "management", decisions.management, data.decisions.management[decisions.management]],
+      ["疲弊対策", "fatigueCare", decisions.fatigueCare, data.decisions.fatigueCare[decisions.fatigueCare]],
+      ["資金", "financing", decisions.financing, data.decisions.financing[decisions.financing]]
+    ].map(([label, category, key, value]) => `<span class="impact-chip"><b>${label}</b>${impactLabel(category, key, value)}</span>`).join("");
   }
 
   function renderHome() {
@@ -284,10 +346,12 @@
     synthetic.users = Math.max(0, state.users + roughNewUsers - Math.round(state.users * constants.userExitRate));
     synthetic.visits = Math.max(0, synthetic.users * constants.visitsPerUser + (management.visitAdjust || 0) + (fatigueCare.visitAdjust || 0));
     synthetic.staff = state.staff;
-    const previewCost = fixedCostFor(synthetic) + (recruitment.monthlyCost || 0) + (management.cost || 0) + (fatigueCare.cost || 0);
+    const previewRecruitmentCost = recruitment.monthlyCost || 0;
+    const previewCost = fixedCostFor(synthetic) + previewRecruitmentCost + (management.cost || 0) + (fatigueCare.cost || 0);
     const previewRevenue = synthetic.visits * state.averageVisitPrice;
-    const pl = getPL(synthetic, { visits: synthetic.visits, usersAfter: synthetic.users, staff: synthetic.staff, averageVisitPrice: state.averageVisitPrice, revenue: previewRevenue, totalExpense: previewCost, monthlyProfit: previewRevenue - previewCost });
+    const pl = getPL(synthetic, { visits: synthetic.visits, usersAfter: synthetic.users, staff: synthetic.staff, averageVisitPrice: state.averageVisitPrice, revenue: previewRevenue, totalExpense: previewCost, recruitmentCost: previewRecruitmentCost, monthlyProfit: previewRevenue - previewCost });
     renderPLCard(el.choicePlPreview, "選択中のざっくりPL", pl, "preview");
+    el.choicePlPreview.insertAdjacentHTML("beforeend", `<div class="impact-list">${selectedImpactChips(d)}</div>`);
   }
 
   function voiceForResult(result) {
@@ -504,13 +568,13 @@
     fillSelect(el.modeSelect, data.playModes, "training12");
     fillSelect(el.scenarioSelect, data.scenarios, "existing");
     fillSelect(el.difficultySelect, data.difficulties, "normal");
-    fillSelect(el.acceptanceLever, data.decisions.acceptance, "standard");
-    fillSelect(el.salesLever, data.decisions.sales, "moderate");
-    fillSelect(el.recruitmentLever, data.decisions.recruitment, "none");
-    fillSelect(el.teamLever, data.decisions.teamBuilding, "normal");
-    fillSelect(el.managementLever, data.decisions.management, "billing");
-    fillSelect(el.fatigueLever, data.decisions.fatigueCare, "none");
-    fillSelect(el.financingLever, data.decisions.financing, "none");
+    fillSelect(el.acceptanceLever, data.decisions.acceptance, "standard", "acceptance");
+    fillSelect(el.salesLever, data.decisions.sales, "moderate", "sales");
+    fillSelect(el.recruitmentLever, data.decisions.recruitment, "none", "recruitment");
+    fillSelect(el.teamLever, data.decisions.teamBuilding, "normal", "teamBuilding");
+    fillSelect(el.managementLever, data.decisions.management, "billing", "management");
+    fillSelect(el.fatigueLever, data.decisions.fatigueCare, "none", "fatigueCare");
+    fillSelect(el.financingLever, data.decisions.financing, "none", "financing");
     renderPresets();
     Object.values(leverMap).forEach((id) => el[id].addEventListener("change", renderChoicePreview));
     el.startButton.addEventListener("click", startGame);
