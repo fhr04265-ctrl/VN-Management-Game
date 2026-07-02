@@ -49,6 +49,7 @@
     managementLever: $("managementLever"),
     fatigueLever: $("fatigueLever"),
     financingLever: $("financingLever"),
+    choiceForecast: $("choiceForecast"),
     choicePlPreview: $("choicePlPreview"),
     advanceButton: $("advanceButton"),
     impactDashboard: $("impactDashboard"),
@@ -286,6 +287,59 @@
     node.style.width = `${Math.max(0, Math.min(100, value))}%`;
   }
 
+  function teamScoreFor(targetState) {
+    return Math.max(0, Math.round((targetState.teamCondition + (100 - targetState.fatigue) + (100 - targetState.turnoverRisk)) / 3));
+  }
+
+  function careScoreFor(targetState) {
+    return Math.max(0, Math.round((targetState.careQuality + targetState.billingQuality) / 2));
+  }
+
+  function focusItems() {
+    const items = [];
+    if (state.cash < 3000000) items.push(["資金", "次の支払いを守る"]);
+    if (state.utilization >= 0.92) items.push(["稼働", "受けすぎを点検"]);
+    if (state.fatigue >= 65 || state.turnoverRisk >= 60) items.push(["チーム", "疲弊を抜く"]);
+    if (state.careQuality < 65 || state.billingQuality < 65) items.push(["品質", "記録・連携を整える"]);
+    if (state.utilization < 0.75 && state.cash >= 3000000) items.push(["成長", "ケア時間を増やす"]);
+    if (!items.length) items.push(["選択", "伸ばすか整えるか決める"]);
+    return items.slice(0, 3);
+  }
+
+  function monthBrief() {
+    const team = teamScoreFor(state);
+    const care = careScoreFor(state);
+    if (state.cash < 3000000) return "現金が薄く、資金繰りが今月の最優先です。売上ではなく、今月出入りするお金を見ます。";
+    if (state.utilization >= 0.92 && team < 60) return "売上は伸びていますが、チームの余裕が削られています。成長を続けるか、回復を挟むかの分かれ目です。";
+    if (state.utilization >= 0.92) return "利用者さんは増えています。今月は、稼働を上げた分だけ疲弊や品質に跳ね返らないかを見ます。";
+    if (care < 65) return "ケアの安定が落ちています。短期売上よりも、記録・連携・請求の土台を戻す月です。";
+    if (state.utilization < 0.75) return "まだ訪問余力があります。固定費をまかなうため、どの程度成長に踏み込むかを決める月です。";
+    return "大きな危険サインはありません。今月は、売上・現金・人・品質のどれを一歩進めるかを選べます。";
+  }
+
+  function forecastTone(value, lowerBetter = false) {
+    const good = lowerBetter ? value <= 0 : value >= 0;
+    if (Math.abs(value) < 8) return "flat";
+    return good ? "good" : "warn";
+  }
+
+  function forecastText(value, lowerBetter = false) {
+    if (Math.abs(value) < 8) return "ほぼ維持";
+    const positive = value > 0;
+    if (lowerBetter) return positive ? "負荷が増えやすい" : "改善しやすい";
+    return positive ? "上がりやすい" : "下がりやすい";
+  }
+
+  function forecastRow(label, value, lowerBetter = false) {
+    const tone = forecastTone(value, lowerBetter);
+    const width = Math.max(14, Math.min(100, 50 + value));
+    return `
+      <div class="forecast-row ${tone}">
+        <div><b>${label}</b><span>${forecastText(value, lowerBetter)}</span></div>
+        <i><em style="width:${width}%"></em></i>
+      </div>`;
+  }
+
   function renderPLCard(node, title, pl, mode = "normal") {
     const profitClass = pl.profit >= 0 ? "good" : "bad";
     node.innerHTML = `
@@ -319,11 +373,16 @@
   function renderHome() {
     const current = Math.min(state.month, maxMonths);
     const ym = getYearMonth(current);
-    const teamScore = Math.max(0, Math.round((state.teamCondition + (100 - state.fatigue) + (100 - state.turnoverRisk)) / 3));
-    const careScore = Math.max(0, Math.round((state.careQuality + state.billingQuality) / 2));
+    const teamScore = teamScoreFor(state);
+    const careScore = careScoreFor(state);
     el.seasonLabel.textContent = `${ym.year}年目 ${ym.month}月`;
     el.missionTitle.textContent = missionText();
-    el.storyCard.innerHTML = `<strong>${metricHealth()}</strong><p>${storyText()}</p>`;
+    el.storyCard.innerHTML = `
+      <span class="mini-label">今月の作戦会議</span>
+      <strong>${metricHealth()}</strong>
+      <p>${monthBrief()}</p>
+      <div class="focus-chips">${focusItems().map(([label, text]) => `<span><b>${label}</b>${text}</span>`).join("")}</div>
+    `;
     el.cashValue.textContent = money(state.cash);
     el.teamValue.textContent = String(teamScore);
     el.careValue.textContent = String(careScore);
@@ -368,8 +427,37 @@
     const previewCost = fixedCostFor(synthetic) + previewRecruitmentCost + (management.cost || 0) + (fatigueCare.cost || 0);
     const previewRevenue = synthetic.visits * state.averageVisitPrice;
     const pl = getPL(synthetic, { visits: synthetic.visits, usersAfter: synthetic.users, staff: synthetic.staff, averageVisitPrice: state.averageVisitPrice, revenue: previewRevenue, totalExpense: previewCost, recruitmentCost: previewRecruitmentCost, monthlyProfit: previewRevenue - previewCost });
+    const currentPL = getPL(state);
+    const teamDelta = (decisionDefsForForecast(d).team || 0) + (teamConditionImpact(d) || 0);
+    const careDelta = (decisionDefsForForecast(d).care || 0) + (d.management === "billing" ? 10 : 0) + (d.management === "addOn" ? 5 : 0);
+    const cashDelta = (pl.profit - currentPL.profit) / 10000 - (previewRecruitmentCost + (management.cost || 0) + (fatigueCare.cost || 0)) / 20000;
+    const loadDelta = (synthetic.visits / Math.max(1, synthetic.staff * constants.comfortableVisitsPerStaff) - state.utilization) * 100;
+    el.choiceForecast.innerHTML = `
+      <span class="mini-label">この判断の予測</span>
+      <h3>何を得て、何に負荷がかかるか</h3>
+      <div class="forecast-grid">
+        ${forecastRow("売上", (pl.revenue - currentPL.revenue) / 50000)}
+        ${forecastRow("現金", cashDelta)}
+        ${forecastRow("チーム負荷", loadDelta - teamDelta * 3, true)}
+        ${forecastRow("ケア・請求", careDelta)}
+      </div>
+    `;
     renderPLCard(el.choicePlPreview, "選択中のざっくりPL", pl, "preview");
     el.choicePlPreview.insertAdjacentHTML("beforeend", `<div class="impact-list">${selectedImpactChips(d)}</div>`);
+  }
+
+  function decisionDefsForForecast(d) {
+    const acceptance = data.decisions.acceptance[d.acceptance];
+    const team = data.decisions.teamBuilding[d.teamBuilding];
+    const fatigue = data.decisions.fatigueCare[d.fatigueCare];
+    return {
+      team: (acceptance.team || 0) + (team.team || 0) + (fatigue.team || 0) - (team.fatigue || 0) - (fatigue.fatigue || 0),
+      care: (acceptance.care || 0) + (team.care || 0) + (team.billing || 0) + (fatigue.billing || 0)
+    };
+  }
+
+  function teamConditionImpact(d) {
+    return d.acceptance === "aggressive" ? -2 : d.acceptance === "cautious" ? 2 : 0;
   }
 
   function voiceForResult(result) {
@@ -415,6 +503,14 @@
 
   function renderImpact(result) {
     const before = previousState;
+    const profitDelta = result.monthlyProfit - before.monthlyProfit;
+    const cashDelta = result.cash - before.cash;
+    const userDelta = result.usersAfter - before.users;
+    const lead = [
+      userDelta > 0 ? `利用者さんは${userDelta}名増えました` : userDelta < 0 ? `利用者さんは${Math.abs(userDelta)}名減りました` : "利用者数は横ばいでした",
+      profitDelta >= 0 ? `利益は${money(profitDelta)}改善しました` : `利益は${money(Math.abs(profitDelta))}悪化しました`,
+      cashDelta >= 0 ? `現金は${money(cashDelta)}増えました` : `現金は${money(Math.abs(cashDelta))}減りました`
+    ].join("。") + "。";
     el.impactDashboard.innerHTML = [
       deltaCard("現金", before.cash, result.cash, money, false, 10000000),
       deltaCard("利益", before.monthlyProfit, result.monthlyProfit, money, false, 1500000),
@@ -429,11 +525,19 @@
     points.push(`コストには固定費に加え、採用費・投資費・疲弊対策費が乗ります。`);
     if (result.cashIn !== result.revenue) points.push("売上と入金はズレます。今月の売上はすぐ現金になりません。");
     if (result.utilization >= 0.9) points.push("稼働が高いため、利益が出ても疲弊や品質に負荷が出ます。");
-    el.impactExplanation.innerHTML = `<strong>この判断で起きたこと</strong><p>${points.join(" ")}</p>`;
+    if (result.hired) points.push("採用成功により、次月以降の受け入れ余力が増えます。");
+    if (result.addOnAcquired) points.push("加算取得により、同じケア時間でも売上を伸ばしやすくなりました。");
+    el.impactExplanation.innerHTML = `
+      <span class="mini-label">答え合わせ</span>
+      <strong>この判断で起きたこと</strong>
+      <p>${lead}</p>
+      <p>${points.join(" ")}</p>
+    `;
   }
 
   function renderResult(result) {
     const [speaker, voice] = voiceForResult(result);
+    const reflection = result.notes?.[0] || result.events?.[0] || "今月の判断が、現金・人・品質にどう影響したかを見てみましょう。";
     el.resultCard.classList.remove("empty");
     el.resultCard.innerHTML = `
       <span class="mini-label">月末結果</span>
@@ -444,7 +548,10 @@
         <div><span>利益</span><strong>${money(result.monthlyProfit)}</strong></div>
         <div><span>入金</span><strong>${money(result.cashIn)}</strong></div>
       </div>
-      <p>${(result.notes && result.notes[0]) || "今月の判断が、現金・人・品質にどう影響したかを見てみましょう。"}</p>
+      <div class="learning-card">
+        <b>今月の読み解き</b>
+        <p>${reflection}</p>
+      </div>
     `;
     el.badgeRow.textContent = "";
     badges(result).forEach((badge) => {
