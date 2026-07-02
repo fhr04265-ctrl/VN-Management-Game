@@ -10,6 +10,7 @@
   let lastResult = null;
   let maxMonths = 12;
   let activeMode = "training12";
+  let selectedPresetKey = "balanced";
 
   const $ = (id) => document.getElementById(id);
   const el = {
@@ -190,9 +191,11 @@
 
   function applyPreset(key) {
     const preset = presets[key];
+    selectedPresetKey = key;
     Object.entries(preset.decisions).forEach(([decisionKey, value]) => {
       el[leverMap[decisionKey]].value = value;
     });
+    renderPresets();
     renderChoicePreview();
   }
 
@@ -326,7 +329,7 @@
     Object.entries(presets).forEach(([key, preset]) => {
       const button = document.createElement("button");
       button.type = "button";
-      button.className = "preset-card";
+      button.className = `preset-card${selectedPresetKey === key ? " is-selected" : ""}`;
       button.innerHTML = `<strong>${preset.title}</strong><span>${preset.copy}</span>`;
       button.addEventListener("click", () => applyPreset(key));
       el.presetCards.appendChild(button);
@@ -376,21 +379,34 @@
     return list.slice(0, 4);
   }
 
-  function deltaCard(label, before, after, formatter, lowerBetter = false) {
+  function deltaCard(label, before, after, formatter, lowerBetter = false, maxRef = 100) {
     const diff = after - before;
     const good = lowerBetter ? diff <= 0 : diff >= 0;
-    return `<div class="delta-card ${good ? "good" : "bad"}"><span>${label}</span><strong>${formatter(after)}</strong><small>${signed(diff, (v) => formatter(v).replace("万円", ""))}</small></div>`;
+    const scale = Math.max(Math.abs(before), Math.abs(after), maxRef, 1);
+    const beforeWidth = Math.max(4, Math.min(100, Math.abs(before) / scale * 100));
+    const afterWidth = Math.max(4, Math.min(100, Math.abs(after) / scale * 100));
+    return `
+      <div class="delta-card ${good ? "good" : "bad"}">
+        <span>${label}</span>
+        <strong>${formatter(after)}</strong>
+        <div class="delta-bars" aria-hidden="true">
+          <i style="width:${beforeWidth}%"></i>
+          <b style="width:${afterWidth}%"></b>
+        </div>
+        <em>${formatter(before)} → ${formatter(after)}</em>
+        <small>${signed(diff, (v) => formatter(v).replace("万円", ""))}</small>
+      </div>`;
   }
 
   function renderImpact(result) {
     const before = previousState;
     el.impactDashboard.innerHTML = [
-      deltaCard("現金", before.cash, result.cash, money),
-      deltaCard("利益", before.monthlyProfit, result.monthlyProfit, money),
-      deltaCard("利用者", before.users, result.usersAfter, (v) => `${Math.round(v)}名`),
-      deltaCard("訪問件数", before.visits, result.visits, (v) => `${Math.round(v)}件`),
-      deltaCard("稼働率", before.utilization * 100, result.utilization * 100, (v) => `${Math.round(v)}%`, true),
-      deltaCard("疲弊度", before.fatigue, result.fatigue, (v) => `${Math.round(v)}`, true)
+      deltaCard("現金", before.cash, result.cash, money, false, 10000000),
+      deltaCard("利益", before.monthlyProfit, result.monthlyProfit, money, false, 1500000),
+      deltaCard("利用者", before.users, result.usersAfter, (v) => `${Math.round(v)}名`, false, 80),
+      deltaCard("総ケア時間", before.visits, result.visits, (v) => `${Math.round(v)}時間`, false, 640),
+      deltaCard("稼働率", before.utilization * 100, result.utilization * 100, (v) => `${Math.round(v)}%`, true, 120),
+      deltaCard("疲弊度", before.fatigue, result.fatigue, (v) => `${Math.round(v)}`, true, 100)
     ].join("");
     renderPLCard(el.impactPl, "今月のPL変換", getPL(state, result));
     const points = [];
@@ -433,7 +449,7 @@
       ["今月入金", money(last.cashIn || 0)],
       ["稼働率", pct(state.utilization)],
       ["スタッフ", `${state.staff}名`],
-      ["訪問件数", `${state.visits}件`],
+      ["総ケア時間", `${state.visits}時間`],
       ["地域信頼", state.regionalTrust],
       ["請求品質", state.billingQuality],
       ["疲弊度", state.fatigue],
@@ -512,6 +528,7 @@
     state = logic.createInitialState(el.scenarioSelect.value, el.difficultySelect.value);
     previousState = null;
     lastResult = null;
+    selectedPresetKey = "balanced";
     el.startScreen.classList.add("is-hidden");
     el.gameScreen.classList.remove("is-hidden");
     el.finalOverlay.classList.add("is-hidden");
@@ -576,7 +593,11 @@
     fillSelect(el.fatigueLever, data.decisions.fatigueCare, "none", "fatigueCare");
     fillSelect(el.financingLever, data.decisions.financing, "none", "financing");
     renderPresets();
-    Object.values(leverMap).forEach((id) => el[id].addEventListener("change", renderChoicePreview));
+    Object.values(leverMap).forEach((id) => el[id].addEventListener("change", () => {
+      selectedPresetKey = "";
+      renderPresets();
+      renderChoicePreview();
+    }));
     el.startButton.addEventListener("click", startGame);
     el.resetButton.addEventListener("click", () => {
       el.gameScreen.classList.add("is-hidden");
