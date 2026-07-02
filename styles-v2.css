@@ -193,6 +193,28 @@ select {
   line-height: 1.7;
 }
 
+.focus-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.focus-chips span {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: #385064;
+  background: #edf6f4;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.focus-chips b {
+  color: var(--teal);
+}
+
 .pl-card {
   display: grid;
   gap: 10px;
@@ -482,6 +504,74 @@ select {
   font-size: 13px;
 }
 
+.forecast-card {
+  display: grid;
+  gap: 11px;
+  padding: 15px;
+  border: 1px solid rgba(188, 205, 216, 0.9);
+  border-radius: 22px;
+  background: linear-gradient(180deg, #ffffff, #f7fcff);
+  box-shadow: 0 10px 24px rgba(31, 58, 78, 0.08);
+}
+
+.forecast-card h3 {
+  margin: -4px 0 0;
+  font-size: 18px;
+}
+
+.forecast-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.forecast-row {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border-radius: 16px;
+  background: #f7fafc;
+}
+
+.forecast-row > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+
+.forecast-row b {
+  font-size: 13px;
+}
+
+.forecast-row span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.forecast-row i {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dbe5ee;
+}
+
+.forecast-row em {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #94a8ba;
+  transition: width 240ms ease;
+}
+
+.forecast-row.good em {
+  background: linear-gradient(90deg, var(--teal), var(--green));
+}
+
+.forecast-row.warn em {
+  background: linear-gradient(90deg, var(--amber), var(--rose));
+}
+
 .action-cards {
   display: grid;
   gap: 10px;
@@ -568,6 +658,25 @@ select {
 .voice-card b {
   display: block;
   margin-bottom: 4px;
+}
+
+.learning-card {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 18px;
+  background: #f5fffb;
+  border: 1px solid #cdeee6;
+}
+
+.learning-card b {
+  color: var(--teal);
+  font-size: 13px;
+}
+
+.learning-card p {
+  color: #334155;
+  line-height: 1.65;
 }
 
 .result-stats {
@@ -931,9 +1040,37 @@ canvas {
     grid-column: 2;
   }
 
+  .desktop-mode .tab-page[data-page="choice"] .forecast-card {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .desktop-mode .forecast-card {
+    padding: 14px;
+    gap: 8px;
+  }
+
+  .desktop-mode .forecast-card h3 {
+    font-size: 16px;
+  }
+
+  .desktop-mode .forecast-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .desktop-mode .forecast-row {
+    padding: 8px;
+  }
+
+  .desktop-mode .forecast-row > div {
+    display: grid;
+    gap: 2px;
+  }
+
   .desktop-mode .tab-page[data-page="choice"] #choicePlPreview {
     grid-column: 3;
-    grid-row: 1 / span 4;
+    grid-row: 2 / span 3;
   }
 
   .desktop-mode .preset-row {
