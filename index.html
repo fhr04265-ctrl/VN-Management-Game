@@ -86,6 +86,22 @@
         <section id="impactDashboard" class="impact-dashboard"></section>
         <section id="impactPl" class="pl-card"></section>
         <section id="impactExplanation" class="story-card"></section>
+        <section class="review-card trend-card">
+          <span class="mini-label">推移</span>
+          <h2 id="reviewTitle">ステーションの変化</h2>
+          <div class="chart-legend" aria-label="グラフの凡例">
+            <span><i class="legend-cash"></i>現金</span>
+            <span><i class="legend-team"></i>チームの余裕</span>
+            <span><i class="legend-care"></i>ケアの安定</span>
+          </div>
+          <canvas id="trendCanvas" width="700" height="320"></canvas>
+          <p class="chart-note">左軸は0〜100の見やすさ用スコアです。現金は1,000万円を100として表示しています。</p>
+        </section>
+        <section class="detail-card">
+          <button id="toggleDetails" class="detail-toggle">詳しい数字を見る</button>
+          <div id="detailPanel" class="detail-panel is-hidden"></div>
+        </section>
+        <button id="exportCsvButton" class="ghost-button wide">CSVを出力</button>
         <button class="big-button next-tab" data-target="result">現場の声を見る</button>
       </main>
 
@@ -99,25 +115,11 @@
         <button class="big-button next-tab" data-target="choice">次の月を考える</button>
       </main>
 
-      <main class="tab-page" data-page="review">
-        <section class="review-card">
-          <span class="mini-label">ふりかえり</span>
-          <h2 id="reviewTitle">ステーションの軌跡</h2>
-          <canvas id="trendCanvas" width="700" height="320"></canvas>
-        </section>
-        <section class="detail-card">
-          <button id="toggleDetails" class="detail-toggle">詳しい数字を見る</button>
-          <div id="detailPanel" class="detail-panel is-hidden"></div>
-        </section>
-        <button id="exportCsvButton" class="ghost-button wide">CSVを出力</button>
-      </main>
-
       <nav class="bottom-tabs">
         <button class="tab-button is-active" data-target="home">ホーム</button>
         <button class="tab-button" data-target="choice">判断</button>
         <button class="tab-button" data-target="impact">変化</button>
         <button class="tab-button" data-target="result">結果</button>
-        <button class="tab-button" data-target="review">振返り</button>
       </nav>
     </section>
 
@@ -126,7 +128,7 @@
         <span class="mini-label">クリア</span>
         <h2 id="finalRank">年間振り返り</h2>
         <div id="finalText"></div>
-        <button id="closeFinalButton" class="big-button">振り返りを見る</button>
+        <button id="closeFinalButton" class="big-button">変化を見る</button>
       </div>
     </section>
   </div>
