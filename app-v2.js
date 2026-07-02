@@ -208,7 +208,7 @@
     document.querySelectorAll(".tab-button").forEach((button) => {
       button.classList.toggle("is-active", button.dataset.target === page);
     });
-    if (page === "review") drawTrend();
+    if (page === "impact") drawTrend();
   }
 
   function preferredDisplayMode() {
@@ -494,40 +494,91 @@
       ctx.fillText("月を進めると推移が表示されます", 90, 160);
       return;
     }
-    const pad = { left: 54, right: 24, top: 28, bottom: 38 };
+    const pad = { left: 62, right: 118, top: 34, bottom: 42 };
     const x = (i) => pad.left + (rows.length <= 1 ? 0 : (i / (rows.length - 1)) * (width - pad.left - pad.right));
     const y = (value) => pad.top + (1 - value / 100) * (height - pad.top - pad.bottom);
     ctx.strokeStyle = "#dbe5ee";
     ctx.lineWidth = 1;
-    [0, 25, 50, 75, 100].forEach((tick) => {
+    [
+      [0, "0"],
+      [25, "25 注意"],
+      [50, "50 標準"],
+      [75, "75 良好"],
+      [100, "100"]
+    ].forEach(([tick, label]) => {
       const yy = y(tick);
       ctx.beginPath();
       ctx.moveTo(pad.left, yy);
       ctx.lineTo(width - pad.right, yy);
       ctx.stroke();
       ctx.fillStyle = "#65758b";
-      ctx.font = "15px sans-serif";
-      ctx.fillText(String(tick), 16, yy + 5);
+      ctx.font = "13px sans-serif";
+      ctx.fillText(label, 10, yy + 5);
     });
-    const drawLine = (color, getter) => {
-      ctx.strokeStyle = color;
+    ctx.strokeStyle = "#94a8ba";
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, pad.top);
+    ctx.lineTo(pad.left, height - pad.bottom);
+    ctx.lineTo(width - pad.right, height - pad.bottom);
+    ctx.stroke();
+
+    const yearMarks = rows.length > 12 ? Math.ceil(rows.length / 12) : rows.length;
+    const marks = rows.length > 12
+      ? Array.from({ length: yearMarks }, (_, i) => Math.min(rows.length - 1, i * 12))
+      : rows.map((_, i) => i);
+    ctx.fillStyle = "#65758b";
+    ctx.font = "13px sans-serif";
+    marks.forEach((index) => {
+      const label = rows.length > 12 ? `${Math.floor(index / 12) + 1}年` : `${index + 1}月`;
+      ctx.fillText(label, x(index) - 10, height - 14);
+    });
+
+    const drawLine = (series) => {
+      const values = rows.map(series.getter);
+      ctx.strokeStyle = series.color;
       ctx.lineWidth = 5;
       ctx.lineCap = "round";
       ctx.lineJoin = "round";
       ctx.beginPath();
-      rows.forEach((row, index) => {
-        const yy = y(getter(row));
+      values.forEach((value, index) => {
+        const yy = y(value);
         if (index === 0) ctx.moveTo(x(index), yy);
         else ctx.lineTo(x(index), yy);
       });
       ctx.stroke();
+      const lastValue = values[values.length - 1];
+      const lastX = x(values.length - 1);
+      const lastY = y(lastValue);
+      ctx.fillStyle = series.color;
+      ctx.beginPath();
+      ctx.arc(lastX, lastY, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.font = "bold 14px sans-serif";
+      ctx.fillText(`${series.label} ${Math.round(lastValue)}`, lastX + 10, Math.max(18, Math.min(height - 22, lastY + 5)));
     };
-    drawLine("#148477", (row) => Math.min(100, Math.max(0, row.cash / 100000)));
-    drawLine("#497dcc", (row) => Math.max(0, Math.min(100, (row.teamCondition + (100 - row.fatigue) + (100 - row.turnoverRisk)) / 3)));
-    drawLine("#f2b24d", (row) => Math.max(0, Math.min(100, (row.careQuality + row.billingQuality) / 2)));
+
+    const seriesList = [
+      {
+        label: "現金",
+        color: "#148477",
+        getter: (row) => Math.min(100, Math.max(0, row.cash / 100000))
+      },
+      {
+        label: "チーム",
+        color: "#497dcc",
+        getter: (row) => Math.max(0, Math.min(100, (row.teamCondition + (100 - row.fatigue) + (100 - row.turnoverRisk)) / 3))
+      },
+      {
+        label: "ケア",
+        color: "#f2b24d",
+        getter: (row) => Math.max(0, Math.min(100, (row.careQuality + row.billingQuality) / 2))
+      }
+    ];
+    seriesList.forEach(drawLine);
     ctx.fillStyle = "#122034";
-    ctx.font = "18px sans-serif";
-    ctx.fillText("現金・チーム・ケアの安定", pad.left, 24);
+    ctx.font = "bold 17px sans-serif";
+    ctx.fillText("現金・チームの余裕・ケアの安定の推移", pad.left, 22);
   }
 
   function renderAll() {
@@ -634,7 +685,7 @@
     el.advanceButton.addEventListener("click", advanceMonth);
     el.closeFinalButton.addEventListener("click", () => {
       el.finalOverlay.classList.add("is-hidden");
-      showPage("review");
+      showPage("impact");
     });
     el.exportCsvButton.addEventListener("click", exportCsv);
     el.toggleDetails.addEventListener("click", () => {
