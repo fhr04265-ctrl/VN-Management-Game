@@ -253,6 +253,29 @@ select {
   line-height: 1.45;
 }
 
+.impact-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.impact-chip {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 999px;
+  background: #edf6f4;
+  color: #385064;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.impact-chip b {
+  color: var(--teal);
+}
+
 .vitals-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
