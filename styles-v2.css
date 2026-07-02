@@ -299,6 +299,57 @@ select {
   font-weight: 900;
 }
 
+.with-tip {
+  position: relative;
+  display: inline-flex !important;
+  width: fit-content;
+  max-width: 100%;
+  align-items: center;
+  gap: 5px;
+}
+
+.info-chip {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 50%;
+  display: inline-grid;
+  place-items: center;
+  color: #fff;
+  background: var(--teal);
+  font-size: 12px;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.tip-pop {
+  position: absolute;
+  left: 0;
+  top: 28px;
+  z-index: 5;
+  width: min(230px, calc(100vw - 56px));
+  padding: 10px 11px;
+  border: 1px solid rgba(188, 205, 216, 0.9);
+  border-radius: 14px;
+  background: #fff;
+  color: #334155;
+  box-shadow: 0 12px 26px rgba(31, 58, 78, 0.18);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 800;
+  line-height: 1.55;
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+}
+
+.with-tip:focus-within .tip-pop,
+.with-tip:hover .tip-pop {
+  opacity: 1;
+  transform: translateY(0);
+}
+
 .vital-card strong {
   font-size: 30px;
   letter-spacing: 0;
@@ -367,6 +418,31 @@ select {
   background: #fff;
   text-align: left;
   box-shadow: 0 8px 18px rgba(31, 58, 78, 0.07);
+  transition: transform 150ms ease, border-color 150ms ease, background 150ms ease, box-shadow 150ms ease;
+}
+
+.preset-card:active {
+  transform: scale(0.98);
+}
+
+.preset-card.is-selected {
+  border-color: var(--teal);
+  background: linear-gradient(160deg, #effffb, #ffffff);
+  box-shadow: 0 12px 24px rgba(20, 132, 119, 0.18);
+  transform: translateY(-2px);
+}
+
+.preset-card.is-selected::after {
+  content: "選択中";
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 8px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: #fff;
+  background: var(--teal);
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .preset-card strong,
@@ -566,6 +642,39 @@ select {
   border-radius: 999px;
   padding: 3px 8px;
   font-weight: 900;
+}
+
+.delta-card em {
+  color: #607089;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.delta-bars {
+  display: grid;
+  gap: 4px;
+  padding: 3px 0;
+}
+
+.delta-bars i,
+.delta-bars b {
+  display: block;
+  height: 7px;
+  min-width: 8px;
+  border-radius: 999px;
+}
+
+.delta-bars i {
+  background: #dbe5ee;
+}
+
+.delta-bars b {
+  background: linear-gradient(90deg, var(--teal), var(--green));
+}
+
+.delta-card.bad .delta-bars b {
+  background: linear-gradient(90deg, #f2b24d, #e46b6b);
 }
 
 .delta-card.good small {
